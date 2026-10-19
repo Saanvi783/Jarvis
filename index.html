@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KAREN - Spidey's Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<h1>
+  <span>
+    <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true" focusable="false">
+      <circle cx="19" cy="19" r="17" fill="#ed1c24" stroke="#222" stroke-width="3"/>
+      <path d="M19 2 v34" stroke="#fff" stroke-width="2"/>
+      <path d="M6 8 l26 22" stroke="#fff" stroke-width="2"/>
+      <path d="M6 30 l26 -22" stroke="#fff" stroke-width="2"/>
+    </svg>
+  </span>
+  KAREN - Spidey's Assistant
+</h1>
+
+<div id="chat-box" aria-live="polite" aria-atomic="true"></div>
+
+<div id="input-box">
+  <input type="text" id="input-text" placeholder="Ask me anything, e.g., 'Who is Spider-Man?'" aria-label="User question input" />
+  <button id="send-btn" aria-label="Send message">Send</button>
+  <button id="voice-btn" aria-label="Start voice input">🎤 Start Voice</button>
+  <button id="stop-btn" aria-label="Stop Karen speaking">⏹ Stop</button>
+</div>
+
+<div id="voice-settings" aria-label="Voice settings controls">
+  <label for="pitch-slider">Pitch:
+    <input type="range" id="pitch-slider" min="0" max="2" step="0.05" value="1.2" />
+  </label>
+  <label for="rate-slider">Rate:
+    <input type="range" id="rate-slider" min="0.1" max="2" step="0.05" value="0.9" />
+  </label>
+  <label for="volume-slider">Volume:
+    <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" />
+  </label>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
