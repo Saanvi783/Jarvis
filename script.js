@@ -332,7 +332,7 @@ async function handleSendMessage(customText = null) {
     const data = await response.json();
     const replyText = data.reply || "I received no response from the system.";
 
-    appendMessage(replyText, 'jarvis', !data.success);
+    appendMessage(replyText, 'jarvis', false);
 
     sessionHistory.push({ role: 'user', text: text });
     sessionHistory.push({ role: 'assistant', text: replyText });

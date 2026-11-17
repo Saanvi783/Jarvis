@@ -132,30 +132,35 @@ def handle_system_command(text):
     """
     raw = text.strip()
 
-    # Normalize: strip leading address ('hey jarvis', 'jarvis,')
-    clean = re.sub(r"^(?:hey\s+|ok\s+|hi\s+|hello\s+)?jarvis[,:\s]*", "", raw, flags=re.IGNORECASE).strip()
-    # Strip trailing punctuation
-    clean = re.sub(r"[?!.,]+$", "", clean).strip()
-    # Strip trailing polite tags
-    clean = re.sub(r"[, ]+(?:please|jarvis|saanvi)$", "", clean, flags=re.IGNORECASE).strip()
+    # Normalize: strip trailing punctuation
+    clean = re.sub(r"[?!.,]+$", "", raw).strip()
+
+    # Iteratively strip conversational preambles (greetings, address, polite openers)
+    for _ in range(3):
+        clean = re.sub(r"^(?:hello|hi|hey|ok|good\s+(?:morning|afternoon|evening|day)|greetings)\b[,\s]*", "", clean, flags=re.IGNORECASE).strip()
+        clean = re.sub(r"^(?:jarvis|saanvi)\b[,\s]*", "", clean, flags=re.IGNORECASE).strip()
+        clean = re.sub(r"^(?:(?:can|could|would)\s+you\s+(?:please\s+)?(?:tell\s+me|show\s+me|give\s+me|check)?\s*)", "", clean, flags=re.IGNORECASE).strip()
+        clean = re.sub(r"^(?:please\s+|kindly\s+|tell\s+me\s+|show\s+me\s+|check\s+)", "", clean, flags=re.IGNORECASE).strip()
+
+    # Strip trailing polite affixes
+    clean = re.sub(r"[, ]+(?:please|jarvis|saanvi|for\s+me|now)$", "", clean, flags=re.IGNORECASE).strip()
 
     lower = clean.lower()
 
     # 1. Date & Time Queries
-    time_patterns = [
-        r"^(what('s| is) the time|what time is it|tell me the time|time check|current time)$",
-        r"^(what('s| is) (the |today('?s) )?date|tell me the date|today('?s)? date|current date)$",
-        r"^(what day is it|what is today)$"
-    ]
-    for pattern in time_patterns:
-        if re.search(pattern, lower):
-            return {
-                "handled": True,
-                "action": "datetime",
-                "response": get_current_time_and_date(),
-                "success": True,
-                "requires_confirmation": False
-            }
+    # Handles: "what's the time", "hello what's the time", "what time is it", "tell me the time", "time check", etc.
+    is_time_query = bool(re.search(r"\btime\b", lower) and re.search(r"\b(what|whats|what's|tell|check|current|is|give)\b", lower)) or lower in ["time", "current time", "the time"]
+    is_date_query = bool(re.search(r"\bdate\b", lower) and re.search(r"\b(what|whats|what's|tell|check|current|is|today|today's|todays)\b", lower)) or lower in ["date", "today's date", "todays date", "current date"]
+    is_day_query = bool(re.search(r"\bday\b", lower) and re.search(r"\b(what|which|today|is)\b", lower)) or lower in ["what day is it", "what is today"]
+
+    if is_time_query or is_date_query or is_day_query:
+        return {
+            "handled": True,
+            "action": "datetime",
+            "response": get_current_time_and_date(),
+            "success": True,
+            "requires_confirmation": False
+        }
 
     # 2. Safety confirmation check for destructive / power commands
     if any(k in lower for k in ["shutdown", "restart", "reboot", "power off"]):
