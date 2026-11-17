@@ -32,7 +32,7 @@ class TestJarvisCommandHandler(unittest.TestCase):
             result = handle_system_command(q)
             self.assertTrue(result["handled"], f"Failed to handle time query: '{q}'")
             self.assertEqual(result["action"], "datetime")
-            self.assertIn("sir", result["response"].lower())
+            self.assertIn("current time is", result["response"].lower())
 
     def test_safety_protocol_power_commands(self):
         power_queries = ["shutdown the computer", "restart system", "reboot now"]
@@ -112,7 +112,7 @@ class TestJarvisAIService(unittest.TestCase):
             success, reply = get_ai_response("Who are you?")
             self.assertFalse(success)
             self.assertIn("GEMINI_API_KEY", reply)
-            self.assertIn("sir", reply.lower())
+            self.assertIn("saanvi", reply.lower())
         finally:
             if old_gemini: os.environ["GEMINI_API_KEY"] = old_gemini
             if old_openai: os.environ["OPENAI_API_KEY"] = old_openai
@@ -142,7 +142,7 @@ class TestJarvisFlaskAPI(unittest.TestCase):
         data = resp.get_json()
         self.assertTrue(data["is_command"])
         self.assertEqual(data["action"], "datetime")
-        self.assertIn("sir", data["reply"].lower())
+        self.assertIn("current time is", data["reply"].lower())
 
     def test_chat_endpoint_empty_message(self):
         payload = {"message": "", "history": []}
@@ -152,11 +152,11 @@ class TestJarvisFlaskAPI(unittest.TestCase):
     def test_static_files_served(self):
         index_resp = self.client.get("/")
         self.assertEqual(index_resp.status_code, 200)
-        self.assertIn(b"J.A.R.V.I.S.", index_resp.data)
+        self.assertIn(b"JARVIS", index_resp.data)
 
         css_resp = self.client.get("/style.css")
         self.assertEqual(css_resp.status_code, 200)
-        self.assertIn(b"--cyan-bright", css_resp.data)
+        self.assertIn(b"--cyan-primary", css_resp.data)
 
         js_resp = self.client.get("/script.js")
         self.assertEqual(js_resp.status_code, 200)

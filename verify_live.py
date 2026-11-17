@@ -12,7 +12,7 @@ print("==================================================")
 try:
     r = requests.get(f"{BASE}/", timeout=5)
     assert r.status_code == 200
-    assert "J.A.R.V.I.S." in r.text
+    assert "JARVIS" in r.text
     print("[PASS] 1. Static UI delivery (index.html): HTTP 200 OK")
 except Exception as e:
     print(f"[FAIL] 1. UI delivery: {e}")

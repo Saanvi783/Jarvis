@@ -68,19 +68,19 @@ def get_current_time_and_date():
     now = datetime.datetime.now()
     time_str = now.strftime("%I:%M %p").lstrip("0")
     date_str = now.strftime("%A, %B %d, %Y")
-    return f"The current time is {time_str} on {date_str}, sir."
+    return f"The current time is {time_str} on {date_str}."
 
 
 def open_application(app_key):
     """Safely launches a whitelisted desktop application."""
     if app_key not in ALLOWED_APPS:
-        return False, f"Application '{app_key}' is not in the authorized application list, sir."
+        return False, f"Application '{app_key}' is not in the authorized application list."
 
     app_info = ALLOWED_APPS[app_key]
     try:
         if sys.platform == "win32":
             subprocess.Popen(app_info["command"], shell=False)
-            return True, f"Certainly, sir. Opening {app_info['name']} now."
+            return True, f"Opening {app_info['name']} now."
         else:
             return False, "Desktop application control is currently configured for Windows environments."
     except Exception as e:
@@ -97,7 +97,7 @@ def open_website(url, site_name=None):
     try:
         webbrowser.open_new_tab(url)
         label = site_name if site_name else url
-        return True, f"Right away, sir. Opening {label}."
+        return True, f"Opening {label}."
     except Exception as e:
         return False, f"I was unable to open the requested website: {str(e)}"
 
@@ -105,7 +105,7 @@ def open_website(url, site_name=None):
 def perform_web_search(query):
     """Performs a web search using the user's default browser."""
     if not query or not query.strip():
-        return False, "Please provide a query for me to search, sir."
+        return False, "Please provide a query for me to search."
 
     clean_query = query.strip()
     encoded = urllib.parse.quote_plus(clean_query)
@@ -113,7 +113,7 @@ def perform_web_search(query):
 
     try:
         webbrowser.open_new_tab(search_url)
-        return True, f"Searching Google for '{clean_query}', sir."
+        return True, f"Searching Google for '{clean_query}'."
     except Exception as e:
         return False, f"I encountered an issue executing the web search: {str(e)}"
 
@@ -137,7 +137,7 @@ def handle_system_command(text):
     # Strip trailing punctuation
     clean = re.sub(r"[?!.,]+$", "", clean).strip()
     # Strip trailing polite tags
-    clean = re.sub(r"[, ]+(?:please|jarvis)$", "", clean, flags=re.IGNORECASE).strip()
+    clean = re.sub(r"[, ]+(?:please|jarvis|saanvi)$", "", clean, flags=re.IGNORECASE).strip()
 
     lower = clean.lower()
 
@@ -162,7 +162,7 @@ def handle_system_command(text):
         return {
             "handled": True,
             "action": "system_power",
-            "response": "Safety protocol active, sir. Shutting down or restarting the system requires explicit manual confirmation. For your security, this action will not be executed automatically.",
+            "response": "Safety protocol active, Saanvi. Shutting down or restarting the system requires explicit manual confirmation. For your security, this action will not be executed automatically.",
             "success": False,
             "requires_confirmation": True
         }

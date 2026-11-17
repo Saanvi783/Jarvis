@@ -3,44 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JARVIS — Just A Rather Very Intelligent System</title>
+  <title>JARVIS</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Background Grid & HUD Vignette -->
-  <div class="hud-background"></div>
-
   <div class="app-container">
     
-    <!-- Top Header -->
-    <header class="hud-header">
-      <div class="header-branding">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
         <div class="reactor-mini">
           <div class="core-mini"></div>
         </div>
-        <div class="branding-text">
-          <h1>J.A.R.V.I.S.</h1>
-          <span class="sub-branding">JUST A RATHER VERY INTELLIGENT SYSTEM</span>
+        <div class="brand-info">
+          <h1>JARVIS</h1>
+          <span class="brand-sub">Personal Assistant</span>
         </div>
       </div>
 
-      <div class="header-status">
-        <div class="status-indicator">
+      <div class="header-right">
+        <div class="status-badge">
           <span class="status-dot"></span>
-          <span id="status-text">INITIALIZING...</span>
+          <span id="status-text">Online</span>
         </div>
-        <div class="clock-display" id="hud-clock">--:--:--</div>
-        <button id="settings-toggle-btn" class="icon-button" title="Audio & Voice Configuration" aria-label="Toggle voice settings">
+        <button id="settings-toggle-btn" class="icon-button" title="Voice Settings" aria-label="Toggle voice settings">
           ⚙️
         </button>
       </div>
     </header>
 
-    <!-- Central AI Orb / Arc Reactor Visualizer -->
+    <!-- Central AI Orb Visualizer -->
     <section class="orb-section" aria-label="JARVIS Core Status">
       <div class="arc-reactor state-idle" id="arc-reactor">
         <div class="ring outer-ring"></div>
@@ -54,27 +50,18 @@
           </div>
         </div>
       </div>
-      <div class="orb-state-label" id="orb-state-label">ONLINE // AWAITING COMMAND</div>
-      
-      <!-- Quick Action Chips -->
-      <div class="quick-commands" id="quick-commands">
-        <button class="chip" data-cmd="What time is it?">🕒 Current Time</button>
-        <button class="chip" data-cmd="Open YouTube">▶️ YouTube</button>
-        <button class="chip" data-cmd="Open Notepad">📝 Notepad</button>
-        <button class="chip" data-cmd="Open Calculator">🔢 Calculator</button>
-        <button class="chip" data-cmd="Search Google for latest space exploration news">🔍 Search Google</button>
-      </div>
+      <div class="orb-state-label" id="orb-state-label">Ready</div>
     </section>
 
-    <!-- Collapsible Voice & Audio Settings Drawer -->
+    <!-- Voice Settings Drawer (Collapsible) -->
     <section class="settings-drawer collapsed" id="settings-drawer" aria-label="Voice settings">
       <div class="drawer-header">
-        <span>AUDIO SYNTHESIS CONFIGURATION</span>
-        <button id="close-settings-btn" class="text-btn">Close ✕</button>
+        <span>Voice Configuration</span>
+        <button id="close-settings-btn" class="close-btn">✕</button>
       </div>
       <div class="drawer-grid">
         <div class="setting-item">
-          <label for="voice-select">Voice Model:</label>
+          <label for="voice-select">Voice:</label>
           <select id="voice-select" aria-label="Select speech voice"></select>
         </div>
         <div class="setting-item">
@@ -95,43 +82,31 @@
     <!-- Conversation Stream Panel -->
     <main class="chat-container">
       <div class="chat-header">
-        <span class="chat-title">COMMUNICATION LOG</span>
-        <button id="clear-chat-btn" class="text-btn" title="Reset Session Memory">Clear History</button>
+        <span class="chat-title">Conversation</span>
+        <button id="clear-chat-btn" class="clear-btn" title="Clear Conversation">Clear</button>
       </div>
       <div id="chat-box" class="chat-box" aria-live="polite">
-        <!-- Messages will be dynamically rendered here -->
+        <!-- Messages render here -->
       </div>
     </main>
 
-    <!-- Control & Input Console -->
+    <!-- Clean Input Console -->
     <footer class="input-console">
       <div class="input-row">
         <input 
           type="text" 
           id="input-text" 
-          placeholder="Speak or type a command, sir... (e.g., 'Open YouTube', 'What is quantum computing?')" 
+          placeholder="Speak or type a command..." 
           autocomplete="off" 
           aria-label="Input command or message"
         />
-        <button id="send-btn" class="hud-btn primary-btn" aria-label="Transmit message">
-          <span class="btn-text">Transmit</span>
-          <span class="btn-icon">➤</span>
+        <button id="send-btn" class="btn send-btn" aria-label="Send message">
+          Send
         </button>
-        <button id="voice-btn" class="hud-btn voice-btn" title="Push-to-Talk (Click to Speak)" aria-label="Push to talk microphone">
+        <button id="voice-btn" class="btn voice-btn" title="Voice Input" aria-label="Voice input microphone">
           <span class="mic-icon">🎙️</span>
-          <span class="voice-btn-label">Push To Talk</span>
+          <span class="voice-btn-label">Voice</span>
         </button>
-        <button id="stop-btn" class="hud-btn secondary-btn" title="Stop Speaking Output" aria-label="Halt spoken output">
-          <span class="stop-icon">⏹</span>
-          <span class="btn-text">Halt Voice</span>
-        </button>
-        <button id="mute-btn" class="hud-btn secondary-btn" title="Toggle Audio Responses" aria-label="Mute audio">
-          <span id="mute-icon">🔊</span>
-        </button>
-      </div>
-      <div class="input-footer">
-        <span id="ai-status-indicator" class="hud-footnote">System checking...</span>
-        <span class="hud-footnote">Hotkeys: [Enter] to send | Push-to-Talk to speak</span>
       </div>
     </footer>
 

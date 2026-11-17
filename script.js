@@ -10,8 +10,6 @@ const chatBox = document.getElementById('chat-box');
 const inputText = document.getElementById('input-text');
 const sendBtn = document.getElementById('send-btn');
 const voiceBtn = document.getElementById('voice-btn');
-const stopBtn = document.getElementById('stop-btn');
-const muteBtn = document.getElementById('mute-btn');
 const clearChatBtn = document.getElementById('clear-chat-btn');
 const settingsToggleBtn = document.getElementById('settings-toggle-btn');
 const closeSettingsBtn = document.getElementById('close-settings-btn');
@@ -21,9 +19,6 @@ const settingsDrawer = document.getElementById('settings-drawer');
 const arcReactor = document.getElementById('arc-reactor');
 const orbStateLabel = document.getElementById('orb-state-label');
 const statusText = document.getElementById('status-text');
-const hudClock = document.getElementById('hud-clock');
-const aiStatusIndicator = document.getElementById('ai-status-indicator');
-const quickCommands = document.getElementById('quick-commands');
 
 // Voice Settings Elements
 const voiceSelect = document.getElementById('voice-select');
@@ -35,14 +30,13 @@ const rateVal = document.getElementById('rate-val');
 const volumeVal = document.getElementById('volume-val');
 
 // Application State
-let isMuted = false;
 let isSpeaking = false;
 let isListening = false;
 let selectedVoice = null;
-let sessionHistory = []; // In-memory multi-turn conversational session
+let sessionHistory = [];
 let recognition = null;
 
-// Backend API Base URL (defaults to current origin or port 5000)
+// Backend API Base URL
 const API_BASE = window.location.origin.includes('5000') 
   ? window.location.origin 
   : (window.location.protocol === 'file:' ? 'http://127.0.0.1:5000' : window.location.origin);
@@ -59,85 +53,82 @@ function setAssistantState(state, labelText) {
   } else {
     switch (state) {
       case 'idle':
-        orbStateLabel.textContent = 'ONLINE // AWAITING COMMAND';
+        orbStateLabel.textContent = 'Ready';
         break;
       case 'listening':
-        orbStateLabel.textContent = 'LISTENING // AUDIO INPUT ACTIVE';
+        orbStateLabel.textContent = 'Listening...';
         break;
       case 'processing':
-        orbStateLabel.textContent = 'PROCESSING // NEURAL CORE ENGAGED';
+        orbStateLabel.textContent = 'Thinking...';
         break;
       case 'speaking':
-        orbStateLabel.textContent = 'VOCALIZING // AUDIO TRANSMISSION';
+        orbStateLabel.textContent = 'Speaking...';
         break;
       case 'error':
-        orbStateLabel.textContent = 'DIAGNOSTIC ALERT // ATTENTION REQUIRED';
+        orbStateLabel.textContent = 'Alert';
         break;
     }
   }
 }
 
 /* ==============================================================
-   Clock & Status Heartbeat
-   ============================================================== */
-function updateClock() {
-  const now = new Date();
-  hudClock.textContent = now.toLocaleTimeString([], { hour12: false });
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-async function checkSystemStatus() {
-  try {
-    const res = await fetch(`${API_BASE}/api/status`);
-    if (res.ok) {
-      const data = await res.json();
-      statusText.textContent = 'ONLINE // CORE ACTIVE';
-      statusText.style.color = '#00f0ff';
-      if (data.ai_configured) {
-        aiStatusIndicator.textContent = `AI Engine: ${data.ai_provider.toUpperCase()} (Online) | OS: ${data.os}`;
-      } else {
-        aiStatusIndicator.textContent = `AI Engine: Offline (Set GEMINI_API_KEY in .env) | OS: ${data.os}`;
-      }
-    } else {
-      throw new Error(`HTTP ${res.status}`);
-    }
-  } catch (err) {
-    statusText.textContent = 'STANDALONE // SERVER OFFLINE';
-    statusText.style.color = '#ffb703';
-    aiStatusIndicator.textContent = 'Backend server unreachable. Start server via "python app.py"';
-  }
-}
-
-/* ==============================================================
-   Speech Synthesis (TTS)
+   Speech Synthesis (TTS) - Curated 2-3 English Voices
    ============================================================== */
 function populateVoiceList() {
   if (!('speechSynthesis' in window)) return;
-  const voices = window.speechSynthesis.getVoices();
+  const allVoices = window.speechSynthesis.getVoices();
+  if (allVoices.length === 0) return;
+
   voiceSelect.innerHTML = '';
 
-  if (voices.length === 0) return;
+  // 1. Preferred JARVIS-style British Male Voice
+  const jarvisVoice = allVoices.find(v => 
+    (v.name.includes('UK English Male') || v.name.includes('George') || v.name.includes('Oliver') || (v.lang === 'en-GB' && !v.name.includes('Female') && !v.name.includes('Hazel') && !v.name.includes('Susan')))
+  );
 
-  // Prefer British / English male voice fitting JARVIS, fallback to English
-  const preferredVoice = voices.find(v => 
-    (v.name.includes('UK English Male') || v.name.includes('George') || v.name.includes('David') || v.name.includes('Oliver'))
-  ) || voices.find(v => v.lang.startsWith('en-GB'))
-    || voices.find(v => v.lang.startsWith('en'))
-    || voices[0];
+  // 2. Standard Natural US Voice
+  const usVoice = allVoices.find(v => 
+    (v.name.includes('David') || v.name.includes('Google US English') || (v.lang === 'en-US' && !v.name.includes('Zira')))
+  );
 
-  voices.forEach(voice => {
+  // 3. Alternative Natural UK Voice
+  const ukAltVoice = allVoices.find(v => 
+    (v.name.includes('Hazel') || v.name.includes('Susan') || v.name.includes('UK English Female') || v.lang === 'en-GB')
+  );
+
+  // Build curated list of 2 to 3 basic English voices maximum
+  const curated = [];
+  if (jarvisVoice) curated.push({ voice: jarvisVoice, label: 'British English (JARVIS)' });
+  if (usVoice && !curated.some(c => c.voice.name === usVoice.name)) {
+    curated.push({ voice: usVoice, label: 'US English' });
+  }
+  if (ukAltVoice && !curated.some(c => c.voice.name === ukAltVoice.name) && curated.length < 3) {
+    curated.push({ voice: ukAltVoice, label: 'UK English (Natural)' });
+  }
+
+  // Fallback if none matched
+  if (curated.length === 0) {
+    const englishFallback = allVoices.filter(v => v.lang.startsWith('en')).slice(0, 3);
+    englishFallback.forEach((v, idx) => {
+      curated.push({ voice: v, label: `English Voice ${idx + 1}` });
+    });
+  }
+
+  // Populate select element with clean names
+  curated.forEach((item, index) => {
     const option = document.createElement('option');
-    option.value = voice.name;
-    option.textContent = `${voice.name} (${voice.lang})`;
-    if (preferredVoice && voice.name === preferredVoice.name) {
+    option.value = item.voice.name;
+    option.textContent = item.label;
+    if (index === 0) {
       option.selected = true;
-      selectedVoice = voice;
+      selectedVoice = item.voice;
     }
     voiceSelect.appendChild(option);
   });
 
-  if (!selectedVoice) selectedVoice = preferredVoice;
+  if (!selectedVoice && curated.length > 0) {
+    selectedVoice = curated[0].voice;
+  }
 }
 
 if ('speechSynthesis' in window) {
@@ -150,20 +141,18 @@ voiceSelect.addEventListener('change', () => {
   selectedVoice = voices.find(v => v.name === voiceSelect.value) || voices[0];
 });
 
-// Slider display updates
 pitchSlider.oninput = () => { pitchVal.textContent = pitchSlider.value; };
 rateSlider.oninput = () => { rateVal.textContent = rateSlider.value; };
 volumeSlider.oninput = () => { volumeVal.textContent = `${Math.round(volumeSlider.value * 100)}%`; };
 
 function speakText(text) {
-  if (isMuted || !('speechSynthesis' in window)) {
+  if (!('speechSynthesis' in window)) {
     setAssistantState('idle');
     return;
   }
 
   window.speechSynthesis.cancel();
 
-  // Strip markdown formatting characters for natural speech
   const cleanSpeech = text
     .replace(/[*_#`~\[\]\(\)]/g, '')
     .replace(/https?:\/\/\S+/g, 'link')
@@ -183,9 +172,9 @@ function speakText(text) {
   utterance.onstart = () => {
     isSpeaking = true;
     setAssistantState('speaking');
-    const allJarvisCards = chatBox.querySelectorAll('.message-card.jarvis');
-    if (allJarvisCards.length > 0) {
-      allJarvisCards[allJarvisCards.length - 1].classList.add('speaking');
+    const cards = chatBox.querySelectorAll('.message-card.jarvis');
+    if (cards.length > 0) {
+      cards[cards.length - 1].classList.add('speaking');
     }
   };
 
@@ -222,19 +211,19 @@ function setupSpeechRecognition() {
   if (!SpeechRecognition) {
     voiceBtn.disabled = true;
     voiceBtn.title = 'Speech Recognition is not supported in this browser.';
-    voiceBtn.querySelector('.voice-btn-label').textContent = 'Voice Unavailable';
+    voiceBtn.querySelector('.voice-btn-label').textContent = 'Unavailable';
     return;
   }
 
   recognition = new SpeechRecognition();
-  recognition.continuous = false; // Push-to-talk: single utterance per activation
+  recognition.continuous = false;
   recognition.interimResults = false;
   recognition.lang = 'en-US';
 
   recognition.onstart = () => {
     isListening = true;
     voiceBtn.classList.add('listening');
-    voiceBtn.querySelector('.voice-btn-label').textContent = 'Listening... (Speak Now)';
+    voiceBtn.querySelector('.voice-btn-label').textContent = 'Listening...';
     setAssistantState('listening');
   };
 
@@ -253,9 +242,9 @@ function setupSpeechRecognition() {
     setAssistantState('idle');
 
     if (event.error === 'not-allowed') {
-      appendMessage('Microphone access was denied. Please allow microphone permissions in your browser to use voice input, sir.', 'jarvis', false, true);
+      appendMessage('Microphone access was denied. Please allow microphone permissions in your browser.', 'jarvis', true);
     } else if (event.error !== 'no-speech') {
-      appendMessage(`Voice recognition issue encountered (${event.error}), sir. You may type your message instead.`, 'jarvis', false, true);
+      appendMessage(`Voice input issue (${event.error}). You can type your command below.`, 'jarvis', true);
     }
   };
 
@@ -270,10 +259,10 @@ function setupSpeechRecognition() {
 
 function resetVoiceButton() {
   voiceBtn.classList.remove('listening');
-  voiceBtn.querySelector('.voice-btn-label').textContent = 'Push To Talk';
+  voiceBtn.querySelector('.voice-btn-label').textContent = 'Voice';
 }
 
-function togglePushToTalk() {
+function toggleVoice() {
   if (!recognition) return;
 
   if (isListening) {
@@ -282,7 +271,6 @@ function togglePushToTalk() {
     resetVoiceButton();
     setAssistantState('idle');
   } else {
-    // If JARVIS is currently speaking, stop him so user can speak
     stopSpeaking();
     try {
       recognition.start();
@@ -293,9 +281,9 @@ function togglePushToTalk() {
 }
 
 /* ==============================================================
-   Chat Rendering & Session Logic
+   Chat Rendering & Communication
    ============================================================== */
-function appendMessage(text, sender, actionBadge = null, isError = false) {
+function appendMessage(text, sender, isError = false) {
   const card = document.createElement('div');
   card.className = `message-card ${sender}${isError ? ' error' : ''}`;
 
@@ -303,7 +291,7 @@ function appendMessage(text, sender, actionBadge = null, isError = false) {
   meta.className = 'message-meta';
 
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const senderLabel = sender === 'user' ? 'USER' : 'JARVIS';
+  const senderLabel = sender === 'user' ? 'Saanvi' : 'JARVIS';
 
   meta.innerHTML = `<span>${senderLabel}</span><span>${time}</span>`;
   card.appendChild(meta);
@@ -312,13 +300,6 @@ function appendMessage(text, sender, actionBadge = null, isError = false) {
   content.className = 'message-content';
   content.textContent = text;
   card.appendChild(content);
-
-  if (actionBadge) {
-    const badge = document.createElement('div');
-    badge.className = 'action-badge';
-    badge.innerHTML = `⚡ Directive: ${actionBadge}`;
-    card.appendChild(badge);
-  }
 
   chatBox.appendChild(card);
   chatBox.scrollTop = chatBox.scrollHeight;
@@ -330,8 +311,8 @@ async function handleSendMessage(customText = null) {
 
   inputText.value = '';
   appendMessage(text, 'user');
+  stopSpeaking();
 
-  // Set visualizer to processing
   setAssistantState('processing');
 
   try {
@@ -349,24 +330,21 @@ async function handleSendMessage(customText = null) {
     }
 
     const data = await response.json();
-    const replyText = data.reply || "I received no response from the system core, sir.";
+    const replyText = data.reply || "I received no response from the system.";
 
-    // Render message
-    appendMessage(replyText, 'jarvis', data.is_command ? data.action : null, !data.success);
+    appendMessage(replyText, 'jarvis', !data.success);
 
-    // Update in-memory session history for conversational context
     sessionHistory.push({ role: 'user', text: text });
     sessionHistory.push({ role: 'assistant', text: replyText });
     if (sessionHistory.length > 20) sessionHistory = sessionHistory.slice(-20);
 
-    // Speak response
     speakText(replyText);
 
   } catch (err) {
     console.error('Chat transmission failure:', err);
     setAssistantState('error');
-    const errMsg = "I apologize, sir, but I am unable to connect to the backend server. Please confirm the server is running via 'python app.py'.";
-    appendMessage(errMsg, 'jarvis', null, true);
+    const errMsg = "Unable to connect to the backend server. Please confirm the server is running via 'python app.py'.";
+    appendMessage(errMsg, 'jarvis', true);
     speakText(errMsg);
   }
 }
@@ -383,26 +361,12 @@ inputText.onkeydown = (e) => {
   }
 };
 
-voiceBtn.onclick = togglePushToTalk;
-stopBtn.onclick = stopSpeaking;
-
-muteBtn.onclick = () => {
-  isMuted = !isMuted;
-  const muteIcon = document.getElementById('mute-icon');
-  if (isMuted) {
-    muteIcon.textContent = '🔇';
-    muteBtn.title = 'Unmute Spoken Responses';
-    stopSpeaking();
-  } else {
-    muteIcon.textContent = '🔊';
-    muteBtn.title = 'Mute Spoken Responses';
-  }
-};
+voiceBtn.onclick = toggleVoice;
 
 clearChatBtn.onclick = () => {
   chatBox.innerHTML = '';
   sessionHistory = [];
-  appendMessage('Session conversational memory has been reset, sir. All systems standing by.', 'jarvis');
+  appendMessage('Conversation cleared. Ready when you are.', 'jarvis');
   setAssistantState('idle');
 };
 
@@ -414,27 +378,14 @@ closeSettingsBtn.onclick = () => {
   settingsDrawer.classList.add('collapsed');
 };
 
-// Quick Command Chips
-quickCommands.addEventListener('click', (e) => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
-  const cmd = chip.getAttribute('data-cmd');
-  if (cmd) {
-    handleSendMessage(cmd);
-  }
-});
-
-// Initial Welcome Sequence
 window.addEventListener('DOMContentLoaded', () => {
   setupSpeechRecognition();
-  checkSystemStatus();
   setAssistantState('idle');
 
-  // Initial welcome message from JARVIS
   setTimeout(() => {
     appendMessage(
-      "Good evening, sir. JARVIS interface operational. All neural matrices and local command directives are standing by.",
+      "Good evening, Saanvi. All systems are operational and ready.",
       'jarvis'
     );
-  }, 400);
+  }, 350);
 });
