@@ -89,33 +89,36 @@ def open_application(app_key):
 
 def open_website(url, site_name=None):
     """Safely opens an approved or validated website."""
-    # Validate URL
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme not in ("http", "https"):
         url = "https://" + url
 
     try:
         webbrowser.open_new_tab(url)
-        label = site_name if site_name else url
-        return True, f"Opening {label}."
-    except Exception as e:
-        return False, f"I was unable to open the requested website: {str(e)}"
+    except Exception:
+        pass
+
+    label = site_name if site_name else url
+    return True, f"Opening {label}.", url
 
 
 def perform_web_search(query):
     """Performs a web search using the user's default browser."""
     if not query or not query.strip():
-        return False, "Please provide a query for me to search."
+        return False, "Please provide a query for me to search.", None
 
     clean_query = query.strip()
+    # Strip unnecessary leading words like 'about', 'for', 'on', 'regarding'
+    clean_query = re.sub(r"^(?:about|for|on|regarding)\s+", "", clean_query, flags=re.IGNORECASE).strip()
     encoded = urllib.parse.quote_plus(clean_query)
     search_url = f"https://www.google.com/search?q={encoded}"
 
     try:
         webbrowser.open_new_tab(search_url)
-        return True, f"Searching Google for '{clean_query}'."
-    except Exception as e:
-        return False, f"I encountered an issue executing the web search: {str(e)}"
+    except Exception:
+        pass
+
+    return True, f"Searching Google for '{clean_query}'.", search_url
 
 
 def handle_system_command(text):
@@ -126,6 +129,7 @@ def handle_system_command(text):
             "handled": bool,
             "action": str,
             "response": str,
+            "url": str or None,
             "success": bool,
             "requires_confirmation": bool
         }
@@ -147,7 +151,20 @@ def handle_system_command(text):
 
     lower = clean.lower()
 
-    # 1. Date & Time Queries
+    # 1. Location-based Time & Weather Queries -> Search Google directly for the location
+    # Examples: "time in the usa", "weather in tokyo", "temperature in new york"
+    if re.search(r"\b(?:time|weather|temperature)\s+(?:in|at|for|of)\s+(.+)", lower):
+        success, resp, search_url = perform_web_search(clean)
+        return {
+            "handled": True,
+            "action": "web_search",
+            "response": resp,
+            "url": search_url,
+            "success": success,
+            "requires_confirmation": False
+        }
+
+    # 2. Local Date & Time Queries (Current device time/date)
     # Handles: "what's the time", "hello what's the time", "what time is it", "tell me the time", "time check", etc.
     is_time_query = bool(re.search(r"\btime\b", lower) and re.search(r"\b(what|whats|what's|tell|check|current|is|give)\b", lower)) or lower in ["time", "current time", "the time"]
     is_date_query = bool(re.search(r"\bdate\b", lower) and re.search(r"\b(what|whats|what's|tell|check|current|is|today|today's|todays)\b", lower)) or lower in ["date", "today's date", "todays date", "current date"]
@@ -158,40 +175,46 @@ def handle_system_command(text):
             "handled": True,
             "action": "datetime",
             "response": get_current_time_and_date(),
+            "url": None,
             "success": True,
             "requires_confirmation": False
         }
 
-    # 2. Safety confirmation check for destructive / power commands
+    # 3. Safety confirmation check for destructive / power commands
     if any(k in lower for k in ["shutdown", "restart", "reboot", "power off"]):
         return {
             "handled": True,
             "action": "system_power",
             "response": "Safety protocol active, Saanvi. Shutting down or restarting the system requires explicit manual confirmation. For your security, this action will not be executed automatically.",
+            "url": None,
             "success": False,
             "requires_confirmation": True
         }
 
-    # 3. Web Search Queries
-    # Examples: "search for quantum computing", "google weather in new york", "search artificial intelligence"
+    # 4. Web Search Queries
+    # Examples: "search about doomsday", "search for quantum computing", "fetch anything from google about x", "google weather"
     search_match = re.search(
-        r"^(?:please\s+)?(?:search(?:\s+for|\s+google\s+for)?|google|look\s+up)\s+(.+)$",
+        r"^(?:please\s+)?(?:search(?:\s+(?:for|about|google\s+for|up|on|regarding))?|google|look\s+up|fetch(?:\s+(?:from\s+google|anything\s+from\s+google|about|for))?|find(?:\s+(?:about|for|out))?)\s+(.+)$",
         lower
     )
     if search_match:
         query = search_match.group(1).strip()
-        # Ensure it's not simply "google" alone
+        # Strip leading prepositions
+        query = re.sub(r"^(?:about|for|on|regarding|me)\s+", "", query, flags=re.IGNORECASE).strip()
+        query = re.sub(r"\s+(?:on|from)\s+google$", "", query, flags=re.IGNORECASE).strip()
+
         if query and query not in ["google", "it"]:
-            success, resp = perform_web_search(query)
+            success, resp, search_url = perform_web_search(query)
             return {
                 "handled": True,
                 "action": "web_search",
                 "response": resp,
+                "url": search_url,
                 "success": success,
                 "requires_confirmation": False
             }
 
-    # 4. Open Website Queries
+    # 5. Open Website Queries
     # Examples: "open youtube", "go to github", "open website reddit.com"
     open_site_match = re.search(
         r"^(?:please\s+)?(?:open(?:\s+website)?|go\s+to|navigate\s+to|launch)\s+([a-zA-Z0-9\.\-\_]+(?:\.[a-zA-Z]{2,})?)$",
@@ -204,22 +227,24 @@ def handle_system_command(text):
         if target in WEBSITE_SHORTCUTS:
             url = WEBSITE_SHORTCUTS[target]
             site_name = target.capitalize()
-            success, resp = open_website(url, site_name)
+            success, resp, site_url = open_website(url, site_name)
             return {
                 "handled": True,
                 "action": "open_website",
                 "response": resp,
+                "url": site_url,
                 "success": success,
                 "requires_confirmation": False
             }
 
         # Check domain-like string (e.g. twitter.com)
         if "." in target:
-            success, resp = open_website(target, target)
+            success, resp, site_url = open_website(target, target)
             return {
                 "handled": True,
                 "action": "open_website",
                 "response": resp,
+                "url": site_url,
                 "success": success,
                 "requires_confirmation": False
             }

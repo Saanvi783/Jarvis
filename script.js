@@ -334,6 +334,11 @@ async function handleSendMessage(customText = null) {
 
     appendMessage(replyText, 'jarvis', false);
 
+    // Land directly on searched page or website if URL is returned
+    if (data.url) {
+      window.open(data.url, '_blank');
+    }
+
     sessionHistory.push({ role: 'user', text: text });
     sessionHistory.push({ role: 'assistant', text: replyText });
     if (sessionHistory.length > 20) sessionHistory = sessionHistory.slice(-20);

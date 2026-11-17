@@ -75,7 +75,7 @@ def chat_endpoint():
         if not message:
             return jsonify({
                 "success": False,
-                "reply": "I didn't quite catch that, sir. Could you please repeat?",
+                "reply": "I didn't quite catch that. Could you please repeat?",
                 "is_command": False
             }), 400
 
@@ -85,18 +85,33 @@ def chat_endpoint():
             return jsonify({
                 "success": cmd_result["success"],
                 "reply": cmd_result["response"],
+                "url": cmd_result.get("url"),
                 "is_command": True,
                 "action": cmd_result["action"],
                 "requires_confirmation": cmd_result["requires_confirmation"]
             })
 
-        # Step 2: Handle via conversational AI
-        success, ai_reply = get_ai_response(message, history)
+        # Step 2: Handle via conversational AI if configured
+        if is_ai_configured():
+            success, ai_reply = get_ai_response(message, history)
+            return jsonify({
+                "success": success,
+                "reply": ai_reply,
+                "url": None,
+                "is_command": False,
+                "action": None,
+                "requires_confirmation": False
+            })
+
+        # Step 3: If AI is not configured, automatically fetch / search Google!
+        # This makes JARVIS work directly for any prompt the user enters!
+        success, search_resp, search_url = perform_web_search(message)
         return jsonify({
-            "success": success,
-            "reply": ai_reply,
-            "is_command": False,
-            "action": None,
+            "success": True,
+            "reply": search_resp,
+            "url": search_url,
+            "is_command": True,
+            "action": "web_search",
             "requires_confirmation": False
         })
 
@@ -118,15 +133,15 @@ def direct_command_endpoint():
 
         if action == "open_app":
             success, msg = open_application(target)
-            return jsonify({"success": success, "reply": msg})
+            return jsonify({"success": success, "reply": msg, "url": None})
         elif action == "open_website":
-            success, msg = open_website(target)
-            return jsonify({"success": success, "reply": msg})
+            success, msg, url = open_website(target)
+            return jsonify({"success": success, "reply": msg, "url": url})
         elif action == "web_search":
-            success, msg = perform_web_search(target)
-            return jsonify({"success": success, "reply": msg})
+            success, msg, url = perform_web_search(target)
+            return jsonify({"success": success, "reply": msg, "url": url})
         else:
-            return jsonify({"success": False, "reply": "Unrecognized action directive, sir."}), 400
+            return jsonify({"success": False, "reply": "Unrecognized action directive."}), 400
 
     except Exception as e:
         return jsonify({"success": False, "reply": str(e)}), 500
