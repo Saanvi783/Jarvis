@@ -2,46 +2,141 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KAREN - Spidey's Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JARVIS — Just A Rather Very Intelligent System</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<h1>
-  <span>
-    <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true" focusable="false">
-      <circle cx="19" cy="19" r="17" fill="#ed1c24" stroke="#222" stroke-width="3"/>
-      <path d="M19 2 v34" stroke="#fff" stroke-width="2"/>
-      <path d="M6 8 l26 22" stroke="#fff" stroke-width="2"/>
-      <path d="M6 30 l26 -22" stroke="#fff" stroke-width="2"/>
-    </svg>
-  </span>
-  KAREN - Spidey's Assistant
-</h1>
+  <!-- Background Grid & HUD Vignette -->
+  <div class="hud-background"></div>
 
-<div id="chat-box" aria-live="polite" aria-atomic="true"></div>
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="hud-header">
+      <div class="header-branding">
+        <div class="reactor-mini">
+          <div class="core-mini"></div>
+        </div>
+        <div class="branding-text">
+          <h1>J.A.R.V.I.S.</h1>
+          <span class="sub-branding">JUST A RATHER VERY INTELLIGENT SYSTEM</span>
+        </div>
+      </div>
 
-<div id="input-box">
-  <input type="text" id="input-text" placeholder="Ask me anything, e.g., 'Who is Spider-Man?'" aria-label="User question input" />
-  <button id="send-btn" aria-label="Send message">Send</button>
-  <button id="voice-btn" aria-label="Start voice input">🎤 Start Voice</button>
-  <button id="stop-btn" aria-label="Stop Karen speaking">⏹ Stop</button>
-</div>
+      <div class="header-status">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span id="status-text">INITIALIZING...</span>
+        </div>
+        <div class="clock-display" id="hud-clock">--:--:--</div>
+        <button id="settings-toggle-btn" class="icon-button" title="Audio & Voice Configuration" aria-label="Toggle voice settings">
+          ⚙️
+        </button>
+      </div>
+    </header>
 
-<div id="voice-settings" aria-label="Voice settings controls">
-  <label for="pitch-slider">Pitch:
-    <input type="range" id="pitch-slider" min="0" max="2" step="0.05" value="1.2" />
-  </label>
-  <label for="rate-slider">Rate:
-    <input type="range" id="rate-slider" min="0.1" max="2" step="0.05" value="0.9" />
-  </label>
-  <label for="volume-slider">Volume:
-    <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1" />
-  </label>
-</div>
+    <!-- Central AI Orb / Arc Reactor Visualizer -->
+    <section class="orb-section" aria-label="JARVIS Core Status">
+      <div class="arc-reactor state-idle" id="arc-reactor">
+        <div class="ring outer-ring"></div>
+        <div class="ring segmented-ring"></div>
+        <div class="ring middle-ring"></div>
+        <div class="ring inner-ring"></div>
+        <div class="reactor-core">
+          <div class="core-glow"></div>
+          <div class="waveform-bars" id="waveform">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+      <div class="orb-state-label" id="orb-state-label">ONLINE // AWAITING COMMAND</div>
+      
+      <!-- Quick Action Chips -->
+      <div class="quick-commands" id="quick-commands">
+        <button class="chip" data-cmd="What time is it?">🕒 Current Time</button>
+        <button class="chip" data-cmd="Open YouTube">▶️ YouTube</button>
+        <button class="chip" data-cmd="Open Notepad">📝 Notepad</button>
+        <button class="chip" data-cmd="Open Calculator">🔢 Calculator</button>
+        <button class="chip" data-cmd="Search Google for latest space exploration news">🔍 Search Google</button>
+      </div>
+    </section>
 
-<script src="script.js"></script>
+    <!-- Collapsible Voice & Audio Settings Drawer -->
+    <section class="settings-drawer collapsed" id="settings-drawer" aria-label="Voice settings">
+      <div class="drawer-header">
+        <span>AUDIO SYNTHESIS CONFIGURATION</span>
+        <button id="close-settings-btn" class="text-btn">Close ✕</button>
+      </div>
+      <div class="drawer-grid">
+        <div class="setting-item">
+          <label for="voice-select">Voice Model:</label>
+          <select id="voice-select" aria-label="Select speech voice"></select>
+        </div>
+        <div class="setting-item">
+          <label for="pitch-slider">Pitch (<span id="pitch-val">1.0</span>):</label>
+          <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.05" value="1.0" />
+        </div>
+        <div class="setting-item">
+          <label for="rate-slider">Speed (<span id="rate-val">1.0</span>):</label>
+          <input type="range" id="rate-slider" min="0.7" max="1.4" step="0.05" value="1.0" />
+        </div>
+        <div class="setting-item">
+          <label for="volume-slider">Volume (<span id="volume-val">100%</span>):</label>
+          <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1.0" />
+        </div>
+      </div>
+    </section>
 
+    <!-- Conversation Stream Panel -->
+    <main class="chat-container">
+      <div class="chat-header">
+        <span class="chat-title">COMMUNICATION LOG</span>
+        <button id="clear-chat-btn" class="text-btn" title="Reset Session Memory">Clear History</button>
+      </div>
+      <div id="chat-box" class="chat-box" aria-live="polite">
+        <!-- Messages will be dynamically rendered here -->
+      </div>
+    </main>
+
+    <!-- Control & Input Console -->
+    <footer class="input-console">
+      <div class="input-row">
+        <input 
+          type="text" 
+          id="input-text" 
+          placeholder="Speak or type a command, sir... (e.g., 'Open YouTube', 'What is quantum computing?')" 
+          autocomplete="off" 
+          aria-label="Input command or message"
+        />
+        <button id="send-btn" class="hud-btn primary-btn" aria-label="Transmit message">
+          <span class="btn-text">Transmit</span>
+          <span class="btn-icon">➤</span>
+        </button>
+        <button id="voice-btn" class="hud-btn voice-btn" title="Push-to-Talk (Click to Speak)" aria-label="Push to talk microphone">
+          <span class="mic-icon">🎙️</span>
+          <span class="voice-btn-label">Push To Talk</span>
+        </button>
+        <button id="stop-btn" class="hud-btn secondary-btn" title="Stop Speaking Output" aria-label="Halt spoken output">
+          <span class="stop-icon">⏹</span>
+          <span class="btn-text">Halt Voice</span>
+        </button>
+        <button id="mute-btn" class="hud-btn secondary-btn" title="Toggle Audio Responses" aria-label="Mute audio">
+          <span id="mute-icon">🔊</span>
+        </button>
+      </div>
+      <div class="input-footer">
+        <span id="ai-status-indicator" class="hud-footnote">System checking...</span>
+        <span class="hud-footnote">Hotkeys: [Enter] to send | Push-to-Talk to speak</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
